@@ -1,0 +1,17 @@
+;; Copyright © 2016, JUXT LTD.
+
+;; Aero configuration for Edge
+
+{:web-server
+ #profile {:dev {:port 3000}}
+
+:restmq
+ #profile {:dev {:host "localhost"
+                 :port 3333}}
+
+ :selmer
+ {:template-caching?
+  #profile {:dev false
+            :test false
+            :pre-prod true
+            :prod true}}
