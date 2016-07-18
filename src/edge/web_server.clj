@@ -3,19 +3,21 @@
 (ns edge.web-server
   (:require
    [bidi.bidi :refer [tag]]
+   [bidi.bidi :as bidi]
    [bidi.vhosts :refer [make-handler vhosts-model]]
    [clojure.tools.logging :refer :all]
    [com.stuartsierra.component :refer [Lifecycle using]]
    [clojure.java.io :as io]
    [edge.sources :refer [source-routes]]
    [edge.phonebook :refer [phonebook-routes]]
-   [sexy-gateway.public-api-to-queue-mapper :refer [create-routes-for-resource]]
+   [edge.sexy-gateway.public-api-to-queue-mapper :refer [create-routes-for-resource]]
    [edge.phonebook-app :refer [phonebook-app-routes]]
    [edge.hello :refer [hello-routes other-hello-routes]]
    [schema.core :as s]
    [selmer.parser :as selmer]
    [yada.resources.webjar-resource :refer [new-webjar-resource]]
-   [yada.yada :refer [handler resource] :as yada]))
+   [yada.yada :refer [handler resource] :as yada]
+   [yada.swagger :as swagger]))
 
 (defn content-routes []
   ["/"
@@ -39,69 +41,87 @@
      (-> (yada/as-resource (io/file "target"))
          (assoc :id :edge.resources/static))]]])
 
+
+(defn create-routes [config]
+  (let [resources (:resources config)]
+    (mapv
+      (fn [resource] (create-routes-for-resource config resource))
+      resources)))
+
+
+
 (defn routes
   "Create the URI route structure for our application."
-  [db config]
+  [config {:keys [port]}]
+  (let [routes (create-routes config)]
   [""
    [
     ;; Hello World!
-    (hello-routes)
-    (other-hello-routes)
+    ;(hello-routes)
+    ;(other-hello-routes)
 
-    (phonebook-routes db config)
-    (phonebook-app-routes db config)
-
-    ["/api" (-> (hello-routes)
-                ;; Wrap this route structure in a Swagger
-                ;; wrapper. This introspects the data model and
-                ;; provides a swagger.json file, used by Swagger UI
-                ;; and other tools.
-                (yada/swaggered
-                 {:info {:title "Hello World!"
-                         :version "1.0"
-                         :description "An API on the classic example"}
-                  :basePath "/api"})
-                ;; Tag it so we can create an href to this API
-                (tag :edge.resources/api))]
-
-    ;; Swagger UI
-    ["/swagger" (-> (new-webjar-resource "/swagger-ui" {:index-files ["index.html"]})
-                    ;; Tag it so we can create an href to the Swagger UI
-                    (tag :edge.resources/swagger))]
+    ;(phonebook-routes db config)
+    ;(phonebook-app-routes db config)
+    ["/sexy-gateway-api/swagger.json"
+      (bidi/tag
+        (yada/handler
+          (swagger/swagger-spec-resource
+            (swagger/swagger-spec
+              routes
+              {:info {:title "Public API"
+                      :version "0.1"
+                      :description "Our public API"}
+               :host (format "localhost:%d" port)
+               :schemes ["http"]
+                :tags [{:name "sexy-gateway"
+                              ;:description (str "All paths for resource " (:resource resource-map))}
+                              :description "All paths " }
+                             {:name "GET"
+                              :description "All paths that support GET"}
+                             {:name "PUT"
+                              :description "All paths that support PUT"}
+                             {:name "DELETE"
+                              :description "All paths that support DELETE"}
+                             {:name "POST"
+                              :description "All paths that support POST"}
+                             {:name "all"
+                              :description "All paths"}]
+                            :basePath ""})))
+        :edge.resources/sexy-gateway-swagger)]
 
     ;; The Edge source code is served for convenience
     (source-routes)
 
     ;; Our content routes, and potentially other routes.
-    (content-routes)
+    ;(content-routes)
 
     ;; This is a backstop. Always produce a 404 if we ge there. This
     ;; ensures we never pass nil back to Aleph.
-    [true (handler nil)]]])
+    [true (handler nil)]]]))
 
 
 
-(s/defrecord WebServer [port :- s/Int
-                        db
+(s/defrecord WebServer [config
                         listener]
   Lifecycle
   (start [component]
-    (if listener
-      component                         ; idempotence
-      (let [vhosts-model
+    (let [port (:port (:web-server config))]
+      (if listener
+        component                         ; idempotence
+        (let [vhosts-model
             (vhosts-model
-             [{:scheme :http :host (format "localhost:%d" port)}
-              (routes db {:port port})])
-            listener (yada/listener vhosts-model {:port port})]
-        (infof "Started web-server on port %s" (:port listener))
-        (assoc component :listener listener))))
+              [{:scheme :http :host (format "localhost:%d" port)}
+                (routes config {:port port})])
+              listener (yada/listener vhosts-model {:port port})]
+            (infof "Started web-server on port %s" (:port listener))
+            (assoc component :listener listener)))))
 
   (stop [component]
     (when-let [close (get-in component [:listener :close])]
       (close))
     (dissoc component :listener)))
 
-(defn new-web-server []
+(defn new-web-server [config]
   (using
-   (map->WebServer {})
-   [:db]))
+   (map->WebServer {:config config})
+   []))

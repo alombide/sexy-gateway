@@ -8,7 +8,8 @@
    [com.stuartsierra.component :refer [system-map system-using]]
    [edge.selmer :refer [new-selmer]]
    [edge.web-server :refer [new-web-server]]
-   [edge.phonebook.db :as db]))
+   ;[edge.phonebook.db :as db]
+   ))
 
 (defn config
   "Read EDN config, with the given profile. See Aero docs at
@@ -27,9 +28,10 @@
   "Create the system. See https://github.com/stuartsierra/component"
   [config]
   (system-map
-   :web-server (new-web-server)
+   :web-server (new-web-server config)
    :selmer (new-selmer)
-   :db (db/create-db (:mongodb config) (:phonebook config))))
+   ;:db (db/create-db (:mongodb config) (:phonebook config))
+   ))
 
 (defn new-dependency-map
   "Declare the dependency relationships between components. See

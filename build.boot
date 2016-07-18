@@ -38,6 +38,7 @@
    [prismatic/schema "1.0.4"]
    [selmer "1.0.4"]
    [yada "1.1.28"]
+   [http.async.client "1.1.0"]
 
    ;; DB deps
    [com.novemberain/monger "3.0.2"]
