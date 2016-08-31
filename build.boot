@@ -29,7 +29,7 @@
    [com.cemerick/piggieback "0.2.1" :scope "test"]
 
    ;; Server deps
-   [aero "1.0.0-beta5"]
+   [aero "1.0.0"]
    [aleph "0.4.1"]
    [bidi "2.0.9"]
    [com.stuartsierra/component "0.3.1"]
@@ -37,7 +37,7 @@
    [org.clojure/tools.namespace "0.2.11"]
    [prismatic/schema "1.0.4"]
    [selmer "1.0.4"]
-   [yada "1.1.28"]
+   [yada "1.1.31"]
    [http.async.client "1.1.0"]
 
    ;; DB deps
