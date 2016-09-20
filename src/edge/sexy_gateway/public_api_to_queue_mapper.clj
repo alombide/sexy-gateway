@@ -7,18 +7,30 @@
    [yada.yada :as yada]
    [edge.sexy-gateway.restmq :as restmq]))
 
+
 (defn transform-keywords-in-body-spec-to-primitives [body-spec]
-  (reduce-kv (fn [mp k v]
-    (if (= v String)
-      (assoc mp v schema.core/Str)))
-        {} body-spec))
+  (let [params (keys body-spec)
+        result {}]
+    (letfn [
+      (traverse [remaining-params result-map]
+        (if (empty? remaining-params)
+          result-map
+          (let [current-param (first remaining-params)
+                current-keyword (current-param body-spec)]
+            (traverse (next remaining-params) (assoc
+                                                result-map
+                                                current-param
+                                                (if (= current-keyword String) s/Str current-keyword))))))]
+      (traverse params result))))
+
 
 (defn add-get-method [config resource-map method-map]
   (if (:GET (:allowed-operations resource-map))
     (assoc
       method-map
       :get
-      {:response
+      {:parameters {:path {:id Long}}
+       :response
         (fn [ctx]
           (let [id (get-in ctx [:parameters :path :id])]
             (restmq/enqueue-get-message!
@@ -32,7 +44,8 @@
     (assoc
       method-map
       :delete
-      {:response
+      {:parameters {:path {:id Long}}
+       :response
         (fn [ctx]
           (let [id (get-in ctx [:parameters :path :id])]
             (restmq/enqueue-get-message!
@@ -42,11 +55,12 @@
     method-map))
 
 (defn add-put-method [config resource-map method-map]
+  (println (:body resource-map))
   (if (:PUT (:allowed-operations resource-map))
     (assoc
       method-map
       :put
-      {:parameters {:body (transform-keywords-in-body-spec-to-primitives (:body resource-map))
+      {:parameters {:body (:body resource-map)
                     :path {:id Long}}
        :consumes [{:media-type #{"application/json" "application/edn"}}]
        :response
@@ -63,7 +77,7 @@
     (assoc
       method-map
       :post
-        {:parameters {:body (transform-keywords-in-body-spec-to-primitives (:body resource-map))
+        {:parameters {:body (:body resource-map)
                       :path {:id Long}}
             :consumes [{:media-type #{"application/json" "application/edn"}}]
             :response
@@ -80,7 +94,7 @@
      {:id (keyword (:resource resource-map))
       :swagger/tags [(:resource resource-map)]
       :description (:description resource-map)
-      :parameters {:path {:id Long}}
+      ;:parameters {:path {:id Long}}
       :produces [{:media-type #{"application/json" "application/edn"}}]
       :methods
         (add-post-method config resource-map

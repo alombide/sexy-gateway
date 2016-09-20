@@ -21,9 +21,9 @@
   :resource "phonebook"
   :description "Phonebook resource"
   :allowed-operations {:GET true :PUT true :POST true :DELETE true }
-  :body { :surname String
-          :firstname String
-          :phone String }
+  :body { :surname    String
+          :firstname  String
+          :phone      String }
   }]
 
 }

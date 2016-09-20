@@ -1,6 +1,14 @@
 # sexy-gateway
 
+TODO
 
+## Generating Dependency Graph
+
+sexy-gateway supports the generation of a graph of the dependencies used by the project. It relies on [[https://github.com/alexander-yakushev/ns-graph][ns-graph]].
+To generate a dependency graph, navigate to your project directory and run:
+ : boot -d ns-graph draw -s src/
+
+[[http://www.graphviz.org/][Graphviz]] must be installed.
 
 ## Copyright & License
 

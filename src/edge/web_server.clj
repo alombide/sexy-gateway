@@ -42,7 +42,7 @@
               :description "Our public API"}
        :host (format "localhost:%d" port)
        :schemes ["http"]
-       :basePath "/api"})]))
+       :basePath "/api" })]))
       ;; This is a backstop. Always produce a 404 if we ge there. This
       ;; ensures we never pass nil back to Aleph.
       ;[true (handler nil)]]))
